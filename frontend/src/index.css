@@ -1,0 +1,38 @@
+@import "tailwindcss";
+/*
+  In your main CSS file (e.g., index.css), ensure this rule is included
+  AFTER the @tailwind directives.
+*/
+
+/*
+  1. Define a custom utility class to hide the scrollbar.
+  We will call it 'hide-scrollbar'.
+*/
+@layer utilities {
+  .hide-scrollbar {
+    /* For Firefox */
+    scrollbar-width: none;
+    /* For IE and Edge */
+    -ms-overflow-style: none;
+  }
+
+  /* 2. Target the Webkit pseudo-element using the arbitrary class syntax 
+       to apply 'display: none'.
+    Note: You must target the specific class you apply in your HTML.
+  */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+button{
+  cursor: pointer;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE */
+  scrollbar-width: none; /* Firefox */
+}

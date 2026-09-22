@@ -1,0 +1,38 @@
+.max-w-9xl{
+  max-width: 1600px;
+}
+body{
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+
+@keyframes growThenShrink {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+  50% {
+    width: 40px;
+    opacity: 1;
+  }
+  100% {
+    width: 40px;
+    opacity: 1;
+  }
+}
+
+.after\:animate-growThenShrink::after {
+  animation: growThenShrink 2.5s linear infinite;
+}
+button{
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+
+
