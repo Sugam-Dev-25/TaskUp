@@ -1,25 +1,20 @@
 const notificationRepository =
     require('./notification.repository');
-
+const { sendMail } = require('../../utils/emailSender');
 class NotificationService {
 
-    async createNotification(data) {
+   async createNotification(data) {
+  if (!data.user_id) throw new Error('user_id is required');
+  if (!data.title) throw new Error('title is required');
+  if (!data.message) throw new Error('message is required');
 
-        if (!data.user_id) {
-            throw new Error('user_id is required');
-        }
+  const notification = await notificationRepository.create(data);
 
-        if (!data.title) {
-            throw new Error('title is required');
-        }
-
-        if (!data.message) {
-            throw new Error('message is required');
-        }
-
-        return notificationRepository.create(data);
-    }
-
+  if (data.email?.to) {
+    sendMail(data.email).catch((err) => console.error('sendMail failed:', err.message));
+  }
+  return notification;
+}
 
     async getByUser(userId, limit, offset) {
 

@@ -71,5 +71,10 @@ async function deleteById(boardId) {
   // Board.deleteOne() + Task.deleteMany() + Column.deleteMany() dance.
   await query('DELETE FROM boards WHERE id = ?', [boardId]);
 }
+// board.repository.js — add
+async function removeMember(boardId, userId) {
+  await query('DELETE FROM board_members WHERE board_id = ? AND user_id = ?', [boardId, userId]);
+}
 
-module.exports = { create, findById, findByMember, getMembers, isMember, addMember, updateName, deleteById };
+// module.exports — add removeMember
+module.exports = { create, findById, findByMember, getMembers, isMember, addMember, removeMember, updateName, deleteById };

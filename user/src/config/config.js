@@ -17,7 +17,7 @@ module.exports = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET_KEY || 'CHANGE_ME_IN_PRODUCTION',
+    secret: process.env.JWT_SECRET_KEY,
     accessExpiresMinutes: parseInt(process.env.ACCESS_TOKEN_EXPIRE_MINUTES || '15', 10),
     refreshExpiresDays: parseInt(process.env.REFRESH_TOKEN_EXPIRE_DAYS || '7', 10),
   },
@@ -43,11 +43,16 @@ module.exports = {
   },
 
   frontend: {
-    resetPasswordUrl: process.env.FRONTEND_RESET_PASSWORD_URL || 'http://localhost:3000/reset-password',
-    verifyEmailUrl: process.env.FRONTEND_VERIFY_EMAIL_URL || 'http://localhost:3000/verify-email',
+    resetPasswordUrl: process.env.FRONTEND_RESET_PASSWORD_URL ,
+    verifyEmailUrl: process.env.FRONTEND_VERIFY_EMAIL_URL ,
   },
+hostingerMailApi: {
+  token: process.env.HOSTINGER_MAIL_API_TOKEN || '',
+},
 
-  cors: {
-    allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
-  },
+cors: {
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+    .split(',')
+    .map(origin => origin.trim()),
+},
 };

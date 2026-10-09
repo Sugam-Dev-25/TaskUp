@@ -80,6 +80,17 @@ async function searchByNameOrEmail(searchTerm, limit = 20) {
     [like, like, limit]
   );
 }
+// accounts.repository.js
+async function markApproved(userId, approverId) {
+  await query(
+    'UPDATE users SET is_approved = TRUE, approved_by = ?, approved_at = NOW() WHERE id = ?',
+    [approverId, userId]
+  );
+}
+
+async function listAll() {
+  return query('SELECT id, email, full_name, role, created_at FROM users ORDER BY role, full_name');
+}
 
 module.exports = {
   getById,
@@ -91,4 +102,6 @@ module.exports = {
   markVerified,
   deactivate,
   searchByNameOrEmail,
+  listAll,
+  markApproved
 };

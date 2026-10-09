@@ -171,3 +171,8 @@ CREATE TABLE task_daily_logs (
 
     UNIQUE KEY uq_task_daily_log (task_id, log_date)
 );
+
+ALTER TABLE task_daily_logs
+  ADD COLUMN user_id VARCHAR(100) NULL AFTER task_id,
+  DROP INDEX uq_task_daily_log,
+  ADD UNIQUE KEY uq_task_daily_log (task_id, user_id, log_date);

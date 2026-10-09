@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { createBoard } from "./boardSlice";
 import { X } from "@phosphor-icons/react";
 import UserSearchInput from "../../../dashboard/UserSearchInput";
+import { useToast } from "../../../hooks/useToast";
 
 interface BoardFormInputs {
   full_name: string;
@@ -17,7 +18,7 @@ export const CreateBoardForm = ({ onClose }: CreateBoardFormProps) => {
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((state) => state.board);
   const isPending = loading === "pending";
-
+  const showToast=useToast()
   const {
     register,
     handleSubmit,
@@ -49,6 +50,7 @@ export const CreateBoardForm = ({ onClose }: CreateBoardFormProps) => {
       if (createBoard.fulfilled.match(res)) {
         reset();
         setMembers([]);
+        showToast("Project Created")
         onClose();
       }
     });

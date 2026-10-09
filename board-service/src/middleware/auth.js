@@ -6,7 +6,7 @@ const config = require('../config/config');
  * (jwt.sign({ sub: userId, type: 'access', role }, JWT_SECRET_KEY, ...)).
  *
  * Board-service has no local users table, so req.user is just the token
- * claims — { _id, role } — not a full DB record. Anywhere this service
+ * claims — { id, role } — not a full DB record. Anywhere this service
  * needs profile data (name/email) to display, it calls out to the
  * user-service via src/utils/userClient.js instead.
  */
@@ -29,10 +29,10 @@ function protect(req, res, next) {
       return res.status(401).json({ message: 'Not authorized, wrong token type' });
     }
     req.user = {
-      _id: decoded.sub || decoded.id,
+      id: decoded.sub || decoded.id,
       role: decoded.role,
     };
-    if (!req.user._id) {
+    if (!req.user.id) {
       return res.status(401).json({ message: 'Not authorized, token missing subject' });
     }
     next();

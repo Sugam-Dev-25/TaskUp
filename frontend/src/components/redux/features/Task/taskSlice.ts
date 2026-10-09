@@ -1,10 +1,11 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { Task, } from "../../../types/allType";
+import type { Task, } from "../../../types/board.Types";
 import axiosClient from "../../../api/boardApiClient";
 import { deleteColumn } from "../Column/columnSlice";
 
 interface taskState {
     task: Task[];
+    favorites: Task[];
     selectedTask: Task | null;
     loading: "idle" | "pending" | "fulfilled" | "failed",
     error: string | null
@@ -12,12 +13,13 @@ interface taskState {
 
 const initialState: taskState = {
     task: [],
+    favorites: [],
     selectedTask: null,
     loading: 'idle',
     error: null
 }
 interface GetTasksParams {
-    scope?: "mine" | "all";
+    scope?: "mine" | "all" | "favorites";
     boardId?: string;
     columnId?: string;
 }
@@ -139,6 +141,45 @@ export const deleteFiles = createAsyncThunk("task/deleteFiles", async ({ taskId,
         return rejectWithValue(error.response?.data?.message || error.message)
     }
 })
+export const toggleFavorite = createAsyncThunk<
+    { taskId: string; is_favorited: boolean },
+    string,
+    { rejectValue: string }
+>(
+    "task/toggleFavorite",
+    async (taskId, { rejectWithValue }) => {
+        try {
+            const res = await axiosClient.post(
+                `/api/tasks/${taskId}/favorite`,
+                {},
+                { withCredentials: true }
+            );
+
+            return {
+                taskId,
+                is_favorited: res.data.is_favorited,
+            };
+        } catch (err: any) {
+            console.error("Toggle favorite error:", err.response?.data || err);
+
+            return rejectWithValue(
+                err.response?.data?.message || err.message
+            );
+        }
+    }
+);
+
+export const getFavoriteTasks = createAsyncThunk<Task[], void, { rejectValue: string }>(
+    "tasks/getFavorites",
+    async (_, { rejectWithValue }) => {
+        try {
+            const res = await axiosClient.get(`/api/tasks?scope=favorites`, { withCredentials: true });
+            return res.data;
+        } catch (err: any) {
+            return rejectWithValue(err.response?.data?.message || err.message);
+        }
+    }
+)
 
 
 
@@ -162,27 +203,23 @@ const taskSlice = createSlice({
             .addCase(moveTask.pending, (state, action) => {
                 state.loading = "pending";
                 const { taskId, newColumnId, newPosition } = action.meta.arg;
-                const taskToMove = state.task.find(t => t._id === taskId);
+                const taskToMove = state.task.find(t => t.id === taskId);
                 if (taskToMove) {
-                    taskToMove.column =
-                        typeof taskToMove.column === "object"
-                            ? { ...taskToMove.column, _id: newColumnId }
-                            : newColumnId;
-
+                    taskToMove.column_id = newColumnId;
                     taskToMove.position = newPosition;
                 }
             })
             .addCase(moveTask.fulfilled, (state, action: PayloadAction<Task>) => {
                 state.loading = "fulfilled";
 
-                const index = state.task.findIndex(t => t._id === action.payload._id);
+                const index = state.task.findIndex(t => t.id === action.payload.id);
 
                 if (index !== -1) {
                     state.task[index] = action.payload; // fully replace with server version
                 }
 
                 // Update selectedTask if it's the same task
-                if (state.selectedTask?._id === action.payload._id) {
+                if (state.selectedTask?.id === action.payload.id) {
                     state.selectedTask = action.payload;
                 }
             })
@@ -190,21 +227,16 @@ const taskSlice = createSlice({
             .addCase(updateTask.pending, (state) => { state.loading = "pending"; })
             .addCase(updateTask.fulfilled, (state, action) => {
                 state.loading = "fulfilled";
-                const index = state.task.findIndex(t => t._id === action.payload._id);
+                const index = state.task.findIndex(t => t.id === action.payload.id);
                 if (index !== -1) {
-                    state.task[index] = {
-                        ...state.task[index],
-                        ...action.payload,
-                        board: action.payload.board ?? state.task[index].board,
-                        column: action.payload.column ?? state.task[index].column,
-                    };
+                    state.task[index] = { ...state.task[index], ...action.payload };
                 }
             })
             .addCase(updateTask.rejected, (state, action) => { state.loading = "failed"; state.error = action.payload as string; })
             .addCase(deleteTask.pending, (state) => { state.loading = "pending"; })
             .addCase(deleteTask.fulfilled, (state, action) => {
                 state.loading = "fulfilled";
-                state.task = state.task.filter(t => t._id !== (action.payload as any).taskId);
+                state.task = state.task.filter(t => t.id !== (action.payload as any).taskId);
             })
             .addCase(deleteTask.rejected, (state) => { state.loading = "failed"; })
             .addCase(addComment.pending, (state) => {
@@ -214,7 +246,7 @@ const taskSlice = createSlice({
                 state.loading = "fulfilled";
 
                 // Update the task in the main array
-                const index = state.task.findIndex(t => t._id === action.payload._id);
+                const index = state.task.findIndex(t => t.id === action.payload.id);
                 if (index !== -1) {
                     state.task[index] = {
                         ...state.task[index],
@@ -234,20 +266,9 @@ const taskSlice = createSlice({
             })
             .addCase(toggleTimer.fulfilled, (state, action) => {
                 state.loading = "fulfilled";
-                const index = state.task.findIndex(t => t._id === action.payload._id);
+                const index = state.task.findIndex(t => t.id === action.payload.id);
                 if (index !== -1) {
-                    state.task[index] = {
-                        ...state.task[index],
-                        ...action.payload,
-                        board:
-                            typeof action.payload.board === "object"
-                                ? action.payload.board
-                                : state.task[index].board,
-                        column:
-                            typeof action.payload.column === "object"
-                                ? action.payload.column
-                                : state.task[index].column,
-                    };
+                    state.task[index] = { ...state.task[index], ...action.payload };
                 }
             })
 
@@ -257,10 +278,7 @@ const taskSlice = createSlice({
             })
             .addCase(deleteColumn.fulfilled, (state, action) => {
                 const { columnId } = action.payload;
-                state.task = state.task.filter((t) => {
-                    const taskColId = typeof t.column === 'object' ? t.column._id : t.column;
-                    return taskColId !== columnId;
-                });
+                state.task = state.task.filter((t) => t.column_id !== columnId);
             })
             .addCase(getTasks.pending, (state) => {
                 state.loading = "pending";
@@ -278,7 +296,7 @@ const taskSlice = createSlice({
                 state.loading = "pending";
             })
             .addCase(uploadFiles.fulfilled, (state, action) => {
-                const index = state.task.findIndex(t => t._id === action.payload._id);
+                const index = state.task.findIndex(t => t.id === action.payload.id);
                 if (index !== -1) {
                     state.task[index] = action.payload;
                 }
@@ -292,6 +310,46 @@ const taskSlice = createSlice({
             .addCase(deleteFiles.fulfilled, (state, action) => {
                 state.selectedTask = action.payload
             })
+            .addCase(getFavoriteTasks.fulfilled, (state, action) => {
+                state.favorites = action.payload;
+            })
+            .addCase(toggleFavorite.fulfilled, (state, action) => {
+    const { taskId, is_favorited } = action.payload;
+
+    const task = state.task.find((t) => t.id === taskId);
+
+    if (task) {
+        task.is_favorited = is_favorited;
+    }
+
+    if (state.selectedTask?.id === taskId) {
+        state.selectedTask.is_favorited = is_favorited;
+    }
+
+    const favoriteTask = state.favorites.find((t) => t.id === taskId);
+
+    if (is_favorited && !favoriteTask && task) {
+        state.favorites.push({
+            ...task,
+            is_favorited: true,
+        });
+    }
+
+    if (!is_favorited) {
+        state.favorites = state.favorites.filter(
+            (t) => t.id !== taskId
+        );
+    }
+
+    state.loading = "fulfilled";
+    state.error = null;
+})
+.addCase(toggleFavorite.rejected, (state, action) => {
+    state.loading = "failed";
+    state.error = action.payload as string;
+})
+
+            
     }
 })
 export default taskSlice.reducer

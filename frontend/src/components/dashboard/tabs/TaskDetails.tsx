@@ -1,19 +1,23 @@
-import { useContext, useState } from "react"
-import type { Task } from "../../types/allType"
+import { useState } from "react"
+import type { Task } from "../../types/board.Types"
 import {
     Pencil, X, Check, Calendar, User as UserIcon,
     ListChecks, Flag, Clock, Target, ChartBar, WarningCircle
 } from "@phosphor-icons/react"
 import UserSearchInput from "../UserSearchInput"
 import { TaskDetailsHeader } from "../Task/TaskDetailsHeader"
-import { BoardContext } from "../../context/BoardContext"
+import { useAppDispatch } from "../../redux/app/hook"
+import { updateTask } from "../../redux/features/Task/taskSlice"
+import { useCurrentBoard } from "../../hooks/useCurrentBoard"
 import { ActivityDetails } from "../Task/ActivityDetails"
 import { AttachmentSection } from "../Task/AttachMentSection"
-
+import { moveTask as moveTaskThunk } from "../../redux/features/Task/taskSlice";
+import { useBoardColumns } from "../../hooks/useBoardColumns";
 interface TaskDetailsProps {
     task: Task,
     onClose: () => void,
     status: string | null,
+    variant?: 'modal'| 'page',
 }
 
 const EditableRow = ({
@@ -58,34 +62,42 @@ const EditableRow = ({
     );
 };
 
-export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
+export const TaskDetails = ({ task, status, onClose, variant='modal' }: TaskDetailsProps) => {
     const [activeField, setActiveField] = useState<keyof Task | 'timeGoal' | 'dates' | null>(null);
     const [editedTask, setEditedTask] = useState<Partial<Task>>({ ...task });
     const [isdropdown, setIsdropdown] = useState(false);
-    const boardDetails = useContext(BoardContext)
+    const dispatch = useAppDispatch()
+    const board = useCurrentBoard()
+    const columns = useBoardColumns(task.board_id); 
+    const isPage=variant==='page'
+
+    const handleColumnChange = (newColumnId: string) => {
+        dispatch(moveTaskThunk({ taskId: task.id, newColumnId, newPosition: 0 }));
+    };
     const handleChange = (field: keyof Task, value: any) => {
         setEditedTask(prev => ({ ...prev, [field]: value }));
     };
     const handleFieldSave = () => {
-        let finalUpdate: Partial<Task> = { ...editedTask };
+        const update: Record<string, any> = {};
 
-        if (activeField === 'labels' && typeof editedTask.labels === 'string') {
-            const labelsArray = (editedTask.labels as string)
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag !== "")
-                .map(tag => ({ name: tag, color: '#3b82f6' }));
+        (['title', 'description', 'priority', 'start_date', 'due_date'] as const).forEach((key) => {
+            if (String(editedTask[key] ?? '') !== String(task[key] ?? '')) update[key] = editedTask[key];
+        });
 
-            finalUpdate.labels = labelsArray;
+        const newEstimate = editedTask.timeManagement?.estimated_time;
+        if (newEstimate !== undefined && newEstimate !== task.timeManagement?.estimated_time) {
+            update.estimated_time = newEstimate;
         }
 
-        // 2. CHECK IF UPDATE FUNCTION EXISTS BEFORE CALLING
-        if (boardDetails?.updateTask) {
-            boardDetails.updateTask(task.id, finalUpdate);
-        } else {
-            console.error("BoardContext not found. Cannot save changes.");
-        }
+        const oldIds = (task.assignedTo ?? []).map((u: any) => u.id).sort().join(',');
+        const newIds = (editedTask.assignedTo ?? []).map((u: any) => u.id).sort().join(',');
+        if (oldIds !== newIds) update.assignedTo = (editedTask.assignedTo ?? []).map((u: any) => u.id);
 
+        if (Object.keys(update).length === 0) {
+            setActiveField(null);
+            return;
+        }
+        dispatch(updateTask({ taskId: task.id, update: update as Partial<Task> }));
         setActiveField(null);
     };
 
@@ -106,8 +118,8 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
     const msToHours = (ms: number = 0) => (ms / 3600000).toFixed(1);
 
     // --- UPDATED TIME LOGIC ---
-    const goalMs = (editedTask.timeManagement?.estimatedTime || 0) * 3600000;
-    const loggedMs = editedTask.timeManagement?.totalLoggedTime || 0;
+    const goalMs = (editedTask.timeManagement?.estimated_time || 0) * 3600000;
+    const loggedMs = editedTask.timeManagement?.total_logged_time || 0;
 
     // 1. Progress capped at 100%
     const progressPercent = goalMs > 0 ? Math.min((loggedMs / goalMs) * 100, 100) : 0;
@@ -143,8 +155,14 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col rounded-2xl shadow-2xl border border-gray-100">
+        <div className={isPage
+            ? "w-full h-full bg-white flex flex-col overflow-hidden"
+            : "fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4 backdrop-blur-sm"
+        }>
+            <div className={isPage
+                ? "bg-white w-full h-full flex flex-col overflow-hidden"
+                : "bg-white w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col rounded-2xl shadow-2xl border border-gray-100"
+            }>
 
                 <TaskDetailsHeader task={task} onClose={onClose} />
 
@@ -184,12 +202,24 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                         <div className="w-2 h-2 rounded-full bg-gray-400" />
                                     </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Status</p>
-                                    <span className="mt-1 w-fit bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded uppercase tracking-widest">
-                                        {status || 'OPEN'}
-                                    </span>
-                                </div>
+                                <EditableRow
+                                    field="column" label="Status" icon={<Target size={20} />}
+                                    activeField={activeField} setActiveField={setActiveField}
+                                    handleFieldSave={() => setActiveField(null)} handleFieldCancel={handleFieldCancel}
+                                    editComponent={
+                                        <select
+                                            value={task.column_id}
+                                            onChange={(e) => handleColumnChange(e.target.value)}
+                                            className="text-xs border rounded px-2 py-1"
+                                        >
+                                            {columns.map((c) => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    }
+                                >
+                                    <span className="text-sm font-medium">{status || 'OPEN'}</span>
+                                </EditableRow>
                             </div>
 
                             <EditableRow
@@ -207,9 +237,9 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                             {Array.isArray(editedTask.assignedTo) && editedTask.assignedTo.map((u: any) => (
                                                 <div key={u.id} className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 pl-1 pr-2 py-1 rounded-full">
                                                     <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">
-                                                        {u.name?.trim()[0]?.toUpperCase()}
+                                                        {u.full_name?.trim()[0]?.toUpperCase()}
                                                     </div>
-                                                    <span className="text-xs font-medium text-indigo-700">{u.name}</span>
+                                                    <span className="text-xs font-medium text-indigo-700">{u.full_name}</span>
                                                     <button
                                                         onClick={() => {
                                                             const filtered = editedTask.assignedTo?.filter((user: any) => user.id !== u.id);
@@ -232,7 +262,7 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                                 }
                                             }}
                                             excludeUserIds={Array.isArray(editedTask.assignedTo) ? editedTask.assignedTo.map(u => u.id) : []}
-                                            includeUserIds={boardDetails?.board?.members.map((m: any) => m.id)}
+                                            includeUserIds={board?.members.map((m) => m.id)}
                                         />
                                     </div>
                                 }
@@ -241,8 +271,8 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                 <div className="flex -space-x-2">
                                     {Array.isArray(editedTask.assignedTo) && editedTask.assignedTo.length > 0 ? (
                                         editedTask.assignedTo.map((u: any) => (
-                                            <div key={u.id} title={u.name} className="w-7 h-7 rounded-full bg-indigo-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                                                {u.name?.trim()[0]?.toUpperCase()}
+                                            <div key={u.id} title={u.full_name} className="w-7 h-7 rounded-full bg-indigo-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
+                                                {u.full_name?.trim()[0]?.toUpperCase()}
                                             </div>
                                         ))
                                     ) : (
@@ -319,15 +349,15 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                     editComponent={
                                         <div className="flex items-center gap-2">
                                             <input type="number" className="w-16 border rounded px-1.5 py-0.5 text-sm font-bold"
-                                                value={editedTask.timeManagement?.estimatedTime || ''}
-                                                onChange={(e) => handleChange('timeManagement', { ...editedTask.timeManagement, estimatedTime: Number(e.target.value) })}
+                                                value={editedTask.timeManagement?.estimated_time || ''}
+                                                onChange={(e) => handleChange('timeManagement', { ...editedTask.timeManagement, estimated_time: Number(e.target.value) })}
                                             />
                                             <span className="text-[10px] font-bold text-slate-400">HRS</span>
                                         </div>
                                     }
                                 >
                                     <span className="text-lg font-black text-slate-700">
-                                        {editedTask.timeManagement?.estimatedTime || 0}
+                                        {editedTask.timeManagement?.estimated_time || 0}
                                         <span className="text-xs font-normal text-slate-400 uppercase ml-1">hrs</span>
                                     </span>
                                 </EditableRow>
@@ -338,7 +368,7 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                     <div className="flex flex-col">
                                         <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Total Worked</p>
                                         <p className="text-lg font-black text-emerald-600">
-                                            {msToHours(loggedMs)} <span className="text-xs font-normal text-slate-400 uppercase ml-1">hrs</span>
+                                             {msToHours(loggedMs)} <span className="text-xs font-normal text-slate-400 uppercase ml-1">hrs</span>
                                         </p>
                                     </div>
                                 </div>
@@ -404,9 +434,9 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Daily Log Breakdown</p>
                                 <div className="flex flex-wrap gap-2">
                                     {editedTask.timeManagement?.dailyLogs?.map((log) => (
-                                        <div key={log.date} className="bg-white border border-slate-200 px-3 py-2 rounded-xl flex flex-col items-center min-w-[90px] shadow-sm">
+                                        <div key={log.id} className="bg-white border border-slate-200 px-3 py-2 rounded-xl flex flex-col items-center min-w-[90px] shadow-sm">
                                             <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                                {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                {new Date(log.log_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                             </span>
                                             <span className="text-sm font-mono font-black text-slate-700">
                                                 {formatToFourDigit(log.duration)}
@@ -434,7 +464,7 @@ export const TaskDetails = ({ task, status, onClose }: TaskDetailsProps) => {
                                 <div className="space-y-3">
                                     <textarea
                                         className="w-full p-4 border border-blue-100 rounded-xl focus:ring-4 focus:ring-blue-50 outline-none transition-all text-sm leading-relaxed"
-                                        rows={5} value={editedTask.description} onChange={(e) => handleChange('description', e.target.value)}
+                                        rows={5} value={editedTask.description ?? ''} onChange={(e) => handleChange('description', e.target.value)}
                                         placeholder="Add a detailed description..."
                                     />
                                     <div className="flex justify-end gap-2">

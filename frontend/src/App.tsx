@@ -5,7 +5,14 @@ import { Auth } from './components/redux/features/User/Auth';
 import { useAppSelector, useAppDispatch } from './components/redux/app/hook';
 import { logout } from './components/redux/features/User/login/loginSlice';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
-import { GlobalTopLoader } from './components/context/GlobalTopLoader';
+import { GlobalTopLoader } from './components/hooks/GlobalTopLoader';
+import { ForgotPasswordView } from './components/redux/features/User/login/ForgotPasswordView';
+import { ResetPasswordView } from './components/redux/features/User/login/ResetPasswordView';
+import { LoginView } from './components/redux/features/User/login/LoginView';
+import { ToastProvider } from './components/hooks/useToast';
+import { VerifyEmailView } from './components/redux/features/User/login/VerifyEmailView';
+import { AppSkeleton } from './components/hooks/AppSkeleton';
+
 
 function App() {
     const user = useAppSelector(state => state.login.user)
@@ -13,9 +20,6 @@ function App() {
 
     const { isFetched } = useCurrentUser();
 
-    // Fired by authRefresh.ts when POST /auth/refresh itself fails — the
-    // httpOnly refresh cookie is gone/expired/revoked, so there's no way
-    // to get a new access token and the session is genuinely over.
     useEffect(() => {
         const handleSessionExpired = () => dispatch(logout());
         window.addEventListener('auth:sessionExpired', handleSessionExpired);
@@ -23,30 +27,46 @@ function App() {
     }, [dispatch]);
 
     if (!isFetched) {
-        return (
-            <div className="flex items-center justify-center min-h-screen text-xl text-gray-700">
-                Loading Application Session...
-            </div>
-        );
+        return <AppSkeleton/>
     }
     return (
         <>
-        <GlobalTopLoader/>
-        <Routes>
-            <Route path="/" element={<Auth />} />
-            <Route
-                path="/:role/dashboard/*"
-                element={
-                    user?.full_name ? (
-                        <AdminDashboard />
-                    ) : (
-                        <Navigate to="/" replace />
-                    )
-                }
-            />
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <ToastProvider>
+                <GlobalTopLoader />
+                <Routes>
+                    <Route path="/" element={<Auth>
+                        <LoginView />
+                    </Auth>} />
+                    <Route
+                        path="/:role/dashboard/*"
+                        element={
+                            user?.full_name ? (
+                                <AdminDashboard />
+                            ) : (
+                                <Navigate to="/" replace />
+                            )
+                        }
+                    />
+                    <Route path="/forgot-password" element={
+                        <div className="min-h-screen flex items-center justify-center px-6">
+                            <Auth>
+                                <ForgotPasswordView />
+                            </Auth>
+
+                        </div>
+                    } />
+                    <Route path="/reset-password" element={
+                        <div className="min-h-screen flex items-center justify-center px-6">
+                            <Auth><ResetPasswordView /></Auth>
+                        </div>
+                    } />
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="/verify-email" element={
+                        <div className="min-h-screen flex items-center justify-center px-6"><VerifyEmailView /></div>
+                    } />
+                </Routes>
+            </ToastProvider>
         </>
     )
 }

@@ -1,40 +1,71 @@
 const axios = require('axios');
 const config = require('../config/config');
 
-/**
- * Replaces the old `.populate('owner', 'name email')` calls, which relied
- * on Board/Task living in the same DB as the User model. That's no longer
- * true, so board-service fetches display info from the user-service.
- *
- * NOTE: this expects a `GET /internal/users/:id` route on the user-service
- * returning { id, name, email, role }. It does NOT currently exist there —
- * see this service's README for the exact route to add. Until it exists,
- * calls below fail closed to a minimal placeholder so board APIs keep
- * working instead of throwing.
- */
+const userCache = new Map();
+
 async function getUserById(id) {
   if (!id) return null;
+
+  const key = String(id);
+
+  if (userCache.has(key)) {
+    return userCache.get(key);
+  }
+
+  const url = `${config.services.userServiceUrl}/internal/users/${key}`;
+
   try {
-    const { data } = await axios.get(`${config.services.userServiceUrl}/internal/users/${id}`, {
-      timeout: 3000,
+    const { data } = await axios.get(url, {
+      timeout: 5000,
     });
-    return { id, full_name: data.full_name, email: data.email, role: data.role };
+
+    const user = {
+      id: key,
+      full_name: data.full_name,
+      email: data.email,
+      role: data.role,
+    };
+
+    userCache.set(key, user);
+
+    return user;
   } catch (error) {
-    console.error(`userClient: failed to fetch user ${id}:`, error.message);
-    return { id, full_name: null, email: null, role: null };
+    return {
+      id: key,
+      full_name: null,
+      email: null,
+      role: null,
+    };
   }
 }
 
+
+
 async function getUsersByIds(ids = []) {
-  const uniqueIds = [...new Set(ids.filter(Boolean).map(String))];
-  const results = await Promise.all(uniqueIds.map(getUserById));
+  const uniqueIds = [
+    ...new Set(
+      ids
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+
+  const results = await Promise.all(
+    uniqueIds.map(getUserById)
+  );
+
   const byId = {};
-  results.forEach((u) => {
-    if (u) byId[u.id] = u;   // ← keyed by `id`, not `_id`
+
+  results.forEach((user) => {
+    if (user) {
+      byId[user.id] = user;
+    }
   });
+
   return byId;
 }
 
-module.exports = { getUserById, getUsersByIds };
-
-
+module.exports = {
+  getUserById,
+  getUsersByIds,
+};

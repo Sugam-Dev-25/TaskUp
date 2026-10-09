@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import axiosClient from "../../../api/userApiClient";
 import { X } from "@phosphor-icons/react";
-import type { User } from "../../../types/allType";
+import type { User } from "../../../types/user.Types";
 
 interface Props {
   user: User;
@@ -22,7 +22,7 @@ const ROLES = [
 const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
   const { register, handleSubmit } = useForm<User>({
     defaultValues: {
-      name: user.name,
+      full_name: user.full_name,
       email: user.email,
       role: user.role,
       
@@ -31,7 +31,7 @@ const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
 
   const onSubmit = async (data: User) => {
     try {
-      await axiosClient.put(`/api/users/edit/${user._id}`, data, {
+      await axiosClient.put(`/api/users/edit/${user.id}`, data, {
         withCredentials: true,
       });
 
@@ -86,7 +86,7 @@ const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
           <input
-            {...register("name")}
+            {...register("full_name")}
             className="w-full px-6 py-4 border border-gray-300 rounded-full"
           />
 

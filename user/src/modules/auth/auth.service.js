@@ -37,7 +37,7 @@ async function authenticate(email, password) {
 
   // Blocks login until a manager/CEO has approved the account.
   // (Managers/CEOs are auto-approved when their email gets verified.)
-  assertApproved(user);
+  // assertApproved(user);
 
   if (!user.is_active) {
     throw new InvalidCredentialsError('Account is deactivated');

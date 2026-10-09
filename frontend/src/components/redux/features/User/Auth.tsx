@@ -1,7 +1,12 @@
-import {LoginView} from "./login/LoginView";
+
 import logoImg from "../../../../assets/pmt.png";
+import { type ReactNode } from "react";
+
+interface AuthProps{
+  children:ReactNode;
+}
  
- export const Auth = () => {
+ export const Auth = ({children}:AuthProps) => {
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
      
@@ -17,9 +22,10 @@ import logoImg from "../../../../assets/pmt.png";
       {/* RIGHT FORM SECTION */}
       <div className="flex items-center justify-center px-6">
         <div className="w-full max-w-md">
-          <LoginView />
+          {children}
         </div>
       </div>
+      
  
     </div>
   );

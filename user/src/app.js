@@ -19,7 +19,8 @@ const approvalRoutes = require('./modules/approval/approval.routes');
 const emailVerificationRoutes = require('./modules/emailVerification/emailVerification.routes');
 const passwordResetRoutes = require('./modules/passwordReset/passwordReset.routes');
 const profileRoutes = require('./modules/profile/profile.routes');
-const accountsRoutes=require('./modules/accounts/accounts.routes')
+const accountsRoutes=require('./modules/accounts/accounts.routes');
+const internalRoutes=require('./modules/internal/internal.routes');
 const app = express();
 
 app.use(corsMiddleware);
@@ -35,7 +36,7 @@ app.use('/auth/email-verification', emailVerificationRoutes);
 app.use('/auth/password-reset', passwordResetRoutes);
 app.use('/profile', profileRoutes);
 app.use('/api/users', accountsRoutes);
-
+app.use('/internal', internalRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

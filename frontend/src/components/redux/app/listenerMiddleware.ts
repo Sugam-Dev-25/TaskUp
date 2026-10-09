@@ -4,27 +4,29 @@ import { fetchNotifications } from "../features/notifications/notificationSlice"
 import { addTask, deleteTask, getTasks, moveTask, updateTask, addComment } from "../features/Task/taskSlice";
 import { addColumn, deleteColumn } from "../features/Column/columnSlice";
 
-export const listenerMiddleware=createListenerMiddleware();
+export const listenerMiddleware = createListenerMiddleware();
+
+let lastNotificationFetch = 0;
+const NOTIFICATION_REFRESH_COOLDOWN_MS = 5000; // don't refetch more than once per 5s no matter how many actions fire
 
 listenerMiddleware.startListening({
-    matcher:isAnyOf(
-        addMember.fulfilled, createBoard.fulfilled, deleteBoard.fulfilled, editBoard.fulfilled,
-        addTask.fulfilled, moveTask.fulfilled, updateTask.fulfilled, deleteTask.fulfilled, addComment.fulfilled,
-        addColumn.fulfilled, deleteColumn.fulfilled    
-    ),
-   effect: async (action, listenerApi) => {
-    // 1. Update notifications
-    listenerApi.dispatch(fetchNotifications());
-     console.log("SaaS Sync: Change detected, refreshing data...");
+  matcher: isAnyOf(
+    addMember.fulfilled, createBoard.fulfilled, deleteBoard.fulfilled, editBoard.fulfilled,
+    addTask.fulfilled, moveTask.fulfilled, updateTask.fulfilled, deleteTask.fulfilled, addComment.fulfilled,
+    addColumn.fulfilled, deleteColumn.fulfilled
+  ),
+  effect: async (action, listenerApi) => {
+    const now = Date.now();
+    if (now - lastNotificationFetch > NOTIFICATION_REFRESH_COOLDOWN_MS) {
+      lastNotificationFetch = now;
+      listenerApi.dispatch(fetchNotifications());
+    }
 
-    // 2. If it was a task update, re-fetch tasks to ensure positions are correct
-    if (updateTask.fulfilled.match(action)) {
-      const boardId = (action.payload as any).board;
+    if (updateTask.fulfilled.match(action) || moveTask.fulfilled.match(action)) {
+      const boardId = (action.payload as any).board_id;   // fixed: real field name
       if (boardId) {
-        // This runs in the background. The user sees the local update first (instant),
-        // then this ensures the data is 100% accurate from the DB.
         listenerApi.dispatch(getTasks({ boardId }));
       }
     }
   },
-})
+});

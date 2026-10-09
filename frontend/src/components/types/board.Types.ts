@@ -1,39 +1,36 @@
+import type { User } from "./user.Types";
 
-import type{ User } from "./user.Types";
 export type Column = {
   id: string;
   board_id: string;
   name: "Todo" | "In Progress" | "Delay" | "Completed";
   order_index: number | null;
-  tasks: Task[];
+  tasks?: Task[];  // only present when nested inside GET /api/boards/:id
 };
-
 
 export type Board = {
   id: string;
   name: string;
-  owner: string;
+  owner: User;
   members: User[];
-  columns: Column[];
+  columns?: Column[];  // only present on GET /api/boards/:id, not the list endpoint
   created_at: string;
   updated_at: string;
 };
 
 export type DailyLog = {
   id: number;
-  task_id: string;
   log_date: string;
   duration: number;
 };
 
-
 export type TimeManagement = {
-  estimatedTime: number;
-  totalLoggedTime: number;
+  estimated_time: number;
+  total_logged_time: number;
   delay: number;
   dailyLogs: DailyLog[];
-  activeStartTime: string | null;
-  isRunning: boolean;
+  byUser: { user: User; duration: number }[];
+  activeTimers: { user: User; active_start_time: string }[];
 };
 
 export type Comment = {
@@ -45,25 +42,18 @@ export type Comment = {
   created_at: string;
 };
 
-
 export type Activity = {
   id: number;
   task_id: string;
   user: User | null;
   action: string;
   created_at: string;
-
   details?: {
     field: string | null;
     oldValue: any;
     newValue: any;
   };
 };
-
-
-
-
-
 
 export type Attachment = {
   id: string;
@@ -73,21 +63,6 @@ export type Attachment = {
   uploadedBy: User | null;
   createdAt?: string;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export type Task = {
   id: string;
@@ -99,18 +74,13 @@ export type Task = {
 
   priority: "Low" | "Medium" | "High" | "Critical";
 
-  due_date: string | Date | null;
-  start_date: string | Date | null;
-
+  due_date: string | Date;
+  start_date: string | Date;
+is_favorited: boolean;
   column_id: string;
- board_id: string;
+  board_id: string;
 
   assignedTo: User[];
-
-  column: Column | null;
-  board: Board | null;
-
-  
 
   attachments: Attachment[];
   comments: Comment[];

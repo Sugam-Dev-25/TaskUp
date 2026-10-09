@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import axiosClient from "../../../../api/userApiClient";
 import { tokenStore } from "../../../../api/tokenStore";
-import type { User } from "../../../../types/allType";
+import type { User } from "../../../../types/user.Types";
 
 interface LoginSuccessPayload {
     user: User;

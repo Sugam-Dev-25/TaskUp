@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Paperclip, CloudArrowUp, Trash, ArrowSquareOut } from "@phosphor-icons/react";
 import { useDispatch } from 'react-redux';
-import type { Attachment } from '../../types/allType';
+import type { Attachment } from '../../types/board.Types';
 import type { AppDispatch } from '../../redux/app/store';
 import { deleteFiles, uploadFiles } from '../../redux/features/Task/taskSlice';
 // import { deleteFile } from '../../redux/features/Task/taskSlice'; 
@@ -71,14 +71,14 @@ export const AttachmentSection = ({ taskId, attachments }: AttachmentSectionProp
             {/* File List */}
             <div className="space-y-2">
                 {attachments?.map((file) => (
-                    <div key={file._id} className="flex items-center gap-3 p-2.5 bg-white rounded-xl border border-gray-100 group hover:border-blue-100 hover:shadow-sm transition-all">
+                    <div key={file.id} className="flex items-center gap-3 p-2.5 bg-white rounded-xl border border-gray-100 group hover:border-blue-100 hover:shadow-sm transition-all">
                         <div className="w-8 h-8 flex-shrink-0 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
                             <Paperclip size={16} />
                         </div>
                         
                         <div className="flex-grow min-w-0">
                             <p className="text-xs font-bold text-gray-700 truncate lowercase">{file.fileName}</p>
-                            <p className="text-[10px] text-gray-400">By {file.uploadedBy?.name || 'Unknown'}</p>
+                            <p className="text-[10px] text-gray-400">By {file.uploadedBy?.full_name || 'Unknown'}</p>
                         </div>
 
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -92,7 +92,7 @@ export const AttachmentSection = ({ taskId, attachments }: AttachmentSectionProp
                                 <ArrowSquareOut size={16} weight="bold" />
                             </a>
                             <button 
-                                onClick={() => handleDelete(file._id)}
+                                onClick={() => handleDelete(file.id)}
                                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                                 title="Delete file"
                             >

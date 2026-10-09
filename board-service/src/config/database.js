@@ -10,8 +10,10 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  timezone: 'Z',
   dateStrings: false,
 });
+pool.pool.on('connection', (conn) => conn.query("SET time_zone = '+00:00'"));
 
 async function query(sql, params = []) {
   const [rows] = await pool.execute(sql, params);

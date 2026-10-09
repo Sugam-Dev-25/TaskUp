@@ -14,8 +14,8 @@ function protect(req, res, next) {
     if (decoded.type && decoded.type !== 'access') {
       return res.status(401).json({ message: 'Not authorized, wrong token type' });
     }
-    req.user = { _id: decoded.sub || decoded.id, role: decoded.role };
-    if (!req.user._id) {
+    req.user = { id: decoded.sub || decoded.id, role: decoded.role };
+    if (!req.user.id) {
       return res.status(401).json({ message: 'Not authorized, token missing subject' });
     }
     next();

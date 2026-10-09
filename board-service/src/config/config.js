@@ -19,13 +19,21 @@ module.exports = {
   // (jwt.sign({ sub, type: 'access', role }, JWT_SECRET_KEY, ...)).
   // Board service only *verifies* tokens here — it never issues its own.
   jwt: {
-    secret: process.env.JWT_SECRET_KEY || 'CHANGE_ME_IN_PRODUCTION',
+    secret: process.env.JWT_SECRET_KEY,
   },
 
   // Other services this one talks to over HTTP instead of sharing a DB.
   services: {
-    userServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:8000',
-    notificationServiceUrl: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:8001',
+    userServiceUrl: process.env.USER_SERVICE_URL,
+    notificationServiceUrl: process.env.NOTIFICATION_SERVICE_URL,
+  },
+    smtp: {
+    host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    user: process.env.SMTP_USER || '',
+    password: process.env.SMTP_PASSWORD || '',
+    fromEmail: process.env.SMTP_FROM_EMAIL || 'no-reply@example.com',
+    secure: (process.env.SMTP_USE_TLS || 'true') === 'true',
   },
 
   uploads: {
@@ -33,6 +41,12 @@ module.exports = {
   },
 
   cors: {
-    allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(','),
-  },
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+    .split(',')
+    .map(origin => origin.trim()),
+},
+// config.js — add
+frontend: {
+  url: process.env.FRONTEND_URL || 'http://localhost:5173',
+},
 };

@@ -29,7 +29,13 @@ const UserSearchInput: React.FC<UserSearchInputProps> = ({ onUserSelect, exclude
                     params: { query: searchTerm }
                 });
 
-                const data: User[] = response.data;
+                const data: User[] = response.data.map((user: any) => ({
+  id: user.id ?? user._id,
+  email: user.email,
+  full_name: user.full_name,
+  role: user.role,
+}));
+
                 const filteredResults = data.filter((user) => {
                     const isBoardMember = includeUserIds 
                         ? includeUserIds.includes(user.id) 

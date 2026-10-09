@@ -1,7 +1,10 @@
 const { v4: uuidv4 } = require('uuid');
 const { pool, query } = require('../../config/database');
-
-async function create({ title, description, priority, dueDate, startDate, columnId, boardId, assignedTo = [] }) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidId(id) {
+  return typeof id === 'string' && UUID_RE.test(id);
+}
+async function create({ title, description, priority, due_date, start_date, columnId, boardId, assignedTo = [] }) {
   const id = uuidv4();
   const conn = await pool.getConnection();
   try {
@@ -9,11 +12,11 @@ async function create({ title, description, priority, dueDate, startDate, column
     await conn.execute(
       `INSERT INTO tasks (id, title, description, priority, due_date, start_date, column_id, board_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, description || null, priority || 'Medium', dueDate || null, startDate || null, columnId, boardId]
+      [id, title, description || null, priority || 'Medium', due_date || null, start_date || null, columnId, boardId]
     );
-    for (const userId of assignedTo) {
-      await conn.execute('INSERT IGNORE INTO task_assignees (task_id, user_id) VALUES (?, ?)', [id, userId]);
-    }
+    for (const userId of assignedTo.filter(isValidId)) {
+  await conn.execute('INSERT IGNORE INTO task_assignees (task_id, user_id) VALUES (?, ?)', [id, userId]);
+}
     await conn.commit();
   } catch (err) {
     await conn.rollback();
@@ -91,13 +94,26 @@ async function attachRelations(tasksOrTask) {
   return isArray ? enriched : enriched[0];
 }
 
-async function findByColumnAndBoard(boardId, columnId) {
+async function findByColumnAndBoard(boardId, columnId, userId) {
   const tasks = await query(
-    'SELECT * FROM tasks WHERE board_id = ? AND column_id = ? ORDER BY position ASC',
-    [boardId, columnId]
+    `SELECT 
+       t.*,
+       EXISTS (
+         SELECT 1
+         FROM task_favorites f
+         WHERE f.task_id = t.id
+           AND f.user_id = ?
+       ) AS is_favorited
+     FROM tasks t
+     WHERE t.board_id = ?
+       AND t.column_id = ?
+     ORDER BY t.position ASC`,
+    [userId, boardId, columnId]
   );
+
   return attachRelations(tasks);
 }
+
 
 async function findByAssignee(userId) {
   const tasks = await query(
@@ -110,24 +126,35 @@ async function findByAssignee(userId) {
   return attachRelations(tasks);
 }
 
-async function findByBoards(boardIds) {
+async function findByBoards(boardIds, userId) {
   if (!boardIds.length) return [];
+
   const placeholders = boardIds.map(() => '?').join(',');
+
   const tasks = await query(
-    `SELECT * FROM tasks WHERE board_id IN (${placeholders}) ORDER BY created_at DESC`,
-    boardIds
+    `SELECT 
+       t.*,
+       EXISTS (
+         SELECT 1
+         FROM task_favorites f
+         WHERE f.task_id = t.id
+           AND f.user_id = ?
+       ) AS is_favorited
+     FROM tasks t
+     WHERE t.board_id IN (${placeholders})
+     ORDER BY t.created_at DESC`,
+    [userId, ...boardIds]
   );
+
   return attachRelations(tasks);
 }
 
+
+// task.repository.js
 const UPDATABLE_COLUMNS = {
-  title: 'title',
-  description: 'description',
-  priority: 'priority',
-  dueDate: 'due_date',
-  startDate: 'start_date',
-  progress: 'progress',
-  position: 'position',
+  title: 'title', description: 'description', priority: 'priority',
+  due_date: 'due_date', start_date: 'start_date', progress: 'progress', position: 'position',
+  estimated_time: 'estimated_time',   // ← add
 };
 
 async function updateFields(id, updates) {
@@ -263,11 +290,11 @@ async function deleteAttachment(attachmentId) {
 
 async function updateTimeManagement(taskId, fields) {
   const columnMap = {
-    estimatedTime: 'estimated_time',
-    totalLoggedTime: 'total_logged_time',
-    delay: 'time_delay',
-    activeStartTime: 'active_start_time',
-    isRunning: 'is_running',
+    estimated_time: 'estimated_time',
+    total_logged_time: 'total_logged_time',
+    time_delay: 'time_delay',
+    active_start_time: 'active_start_time',
+    is_running: 'is_running',
   };
   const setClauses = [];
   const params = [];
@@ -286,13 +313,83 @@ async function getDailyLogs(taskId) {
   return query('SELECT log_date, duration FROM task_daily_logs WHERE task_id = ? ORDER BY log_date', [taskId]);
 }
 
-async function upsertDailyLog(taskId, dateStr, durationDelta) {
+async function upsertDailyLog(taskId, userId, dateStr, durationDelta) {
   await query(
-    `INSERT INTO task_daily_logs (task_id, log_date, duration)
-     VALUES (?, ?, ?)
+    `INSERT INTO task_daily_logs (task_id, user_id, log_date, duration)
+     VALUES (?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE duration = duration + VALUES(duration)`,
-    [taskId, dateStr, durationDelta]
+    [taskId, userId, dateStr, durationDelta]
   );
+}
+
+async function getDailyLogs(taskId) {
+  return query('SELECT user_id, log_date, duration FROM task_daily_logs WHERE task_id = ? ORDER BY log_date', [taskId]);
+}
+
+/** Per-user total time logged on a task — the "who worked how much" breakdown. */
+async function getTimeByUser(taskId) {
+  return query(
+    `SELECT user_id, SUM(duration) AS total_duration
+     FROM task_daily_logs
+     WHERE task_id = ?
+     GROUP BY user_id`,
+    [taskId]
+  );
+}
+async function setAssignees(taskId, userIds) {
+  const validIds = userIds.filter(isValidId);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.execute('DELETE FROM task_assignees WHERE task_id = ?', [taskId]);
+    for (const userId of validIds) {
+      await conn.execute('INSERT IGNORE INTO task_assignees (task_id, user_id) VALUES (?, ?)', [taskId, userId]);
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+async function toggleFavorite(taskId, userId) {
+  const rows = await query('SELECT 1 FROM task_favorites WHERE task_id = ? AND user_id = ?', [taskId, userId]);
+  if (rows.length) {
+    await query('DELETE FROM task_favorites WHERE task_id = ? AND user_id = ?', [taskId, userId]);
+    return false;
+  }
+  await query('INSERT INTO task_favorites (task_id, user_id) VALUES (?, ?)', [taskId, userId]);
+  return true;
+}
+
+async function getActiveTimer(taskId, userId) {
+  const rows = await query('SELECT * FROM task_active_timers WHERE task_id = ? AND user_id = ?', [taskId, userId]);
+  return rows[0] || null;
+}
+async function startTimer(taskId, userId, startTime) {
+  await query(
+    'INSERT INTO task_active_timers (task_id, user_id, active_start_time) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE active_start_time = VALUES(active_start_time)',
+    [taskId, userId, startTime]
+  );
+}
+async function stopTimer(taskId, userId) {
+  await query('DELETE FROM task_active_timers WHERE task_id = ? AND user_id = ?', [taskId, userId]);
+}
+async function getActiveTimersForTask(taskId) {
+  return query('SELECT user_id, active_start_time FROM task_active_timers WHERE task_id = ?', [taskId]);
+}
+
+// task.repository.js — add
+async function findFavoritesByUser(userId) {
+  const tasks = await query(
+    `SELECT t.* FROM tasks t
+     JOIN task_favorites f ON f.task_id = t.id
+     WHERE f.user_id = ?
+     ORDER BY f.created_at DESC`,
+    [userId]
+  );
+  return attachRelations(tasks);
 }
 
 module.exports = {
@@ -316,4 +413,11 @@ module.exports = {
   upsertDailyLog,
   getDailyLogs,
   attachRelations,
+  getTimeByUser,
+  toggleFavorite,
+  getActiveTimer,
+  startTimer,
+  stopTimer,
+  getActiveTimersForTask,
+  findFavoritesByUser
 };

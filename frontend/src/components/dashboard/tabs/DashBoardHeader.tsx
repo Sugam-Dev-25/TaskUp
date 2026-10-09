@@ -1,19 +1,21 @@
 
-import { useState, useRef, useEffect, useContext } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Plus, X } from '@phosphor-icons/react';
 import UserSearchInput from '../UserSearchInput';
-import { BoardContext } from "../../context/BoardContext";
 import { getAvatarColor } from "../../utils/avatarColor";
 import type { User } from '../../types/user.Types'
-
+import { useAppDispatch, useAppSelector } from "../../redux/app/hook";
+import { useCurrentBoard } from "../../hooks/useCurrentBoard";
+import { addMember as addMemberThunk } from "../../redux/features/Board/boardSlice";
+import { removeMember as removeMemberThunk } from "../../redux/features/Board/boardSlice";
 export const DashBoardHeader = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const dropdownRef = useRef<HTMLDivElement | null>(null)
-    const boardDetails = useContext(BoardContext)
-    if (!boardDetails) return null
-    const { board, addMember } = boardDetails
-
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
+    const dispatch = useAppDispatch()
+    const board = useCurrentBoard()
+    const currentUser = useAppSelector((s) => s.login.user);
+    const canManage = currentUser?.role === "manager" || currentUser?.role === "ceo";
     useEffect(() => {
         const handaleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -24,6 +26,7 @@ export const DashBoardHeader = () => {
         return () => window.removeEventListener("mousedown", handaleClickOutside)
     }, [])
     if (!board) return null
+
 
     return (
         <div className="px-6 pt-6">
@@ -46,9 +49,17 @@ export const DashBoardHeader = () => {
                                 key={m.id}
                                 title={m.full_name || "Unknown"}
                                 style={{ backgroundColor: getAvatarColor(m.full_name) }}
-                                className="w-8 h-8 rounded-full text-white text-xs font-semibold flex items-center justify-center border-2 border-white"
+                                className="relative group w-8 h-8 rounded-full text-white text-xs font-semibold flex items-center justify-center border-2 border-white"
                             >
                                 {(m.full_name || "?").charAt(0).toUpperCase()}
+                                {canManage && (
+                                    <button
+                                        onClick={() => dispatch(removeMemberThunk({ boardId: board.id, memberId: m.id }))}
+                                        className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 bg-red-500 rounded-full items-center justify-center text-white text-[8px]"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
                         ))}
                         {board.members.length > 4 && (
@@ -57,7 +68,6 @@ export const DashBoardHeader = () => {
                             </div>
                         )}
                     </div>
-
                     <button
                         onClick={() => {
                             setIsOpen(true);
@@ -114,16 +124,10 @@ export const DashBoardHeader = () => {
                             disabled={!selectedUser}
                             onClick={() => {
                                 if (!selectedUser) return;
-
-                                console.log("SELECTED USER:", selectedUser);
-                                console.log("SELECTED USER ID:", selectedUser.id);
-
-                                addMember(selectedUser.id);
+                                dispatch(addMemberThunk({ boardId: board.id, memberId: selectedUser.id }))
                                 setSelectedUser(null);
                             }}
-                            className={`mt-5 w-full h-11 rounded-full bg-black text-white font-medium transition
-          ${!selectedUser ? "opacity-100 cursor-not-allowed" : "hover:bg-gray-900"}
-        `}
+                            className={`mt-5 w-full h-11 rounded-full bg-black text-white font-medium transition ${!selectedUser ? "opacity-100 cursor-not-allowed" : "hover:bg-gray-900"} `}
                         >
                             Invite Now
                         </button>

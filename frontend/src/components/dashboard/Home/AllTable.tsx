@@ -47,19 +47,19 @@ export const AllTable = () => {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {roleUsers.map((u: any) => (
-              <tr key={u._id} className="hover:bg-slate-50/50 transition-all">
+              <tr key={u.id} className="hover:bg-slate-50/50 transition-all">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div
                       className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs text-white border"
                       style={{
-                        backgroundColor: getAvatarColor(u.name || "User"),
+                        backgroundColor: getAvatarColor(u.full_name || "User"),
                       }}
                     >
-                      {u.name?.charAt(0).toUpperCase()}
+                      {u.full_name?.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm font-bold text-gray-800">
-                      {u.name}
+                      {u.full_name}
                     </span>
                   </div>
                 </td>
@@ -112,15 +112,15 @@ export const AllTable = () => {
     tasks.forEach((task: any) => {
       task.assignedTo?.forEach((member: any) => {
         if (member?.role === roleName) {
-          if (!userMap[member._id]) {
-            userMap[member._id] = {
-              _id: member._id,
+          if (!userMap[member.id]) {
+            userMap[member.id] = {
+              _id: member.id,
               name: member.name,
               stats: { total: 0, completed: 0, remaining: 0, totalLogged: 0 },
             };
           }
 
-          userMap[member._id].stats.total += 1;
+          userMap[member.id].stats.total += 1;
 
           // Logic for completion: Check progress or Column name
           // Assuming column name 'Done' or progress === 100
@@ -128,12 +128,12 @@ export const AllTable = () => {
             task.progress === 100 ||
             task.column?.name?.toLowerCase() === "done"
           ) {
-            userMap[member._id].stats.completed += 1;
+            userMap[member.id].stats.completed += 1;
           } else {
-            userMap[member._id].stats.remaining += 1;
+            userMap[member.id].stats.remaining += 1;
           }
 
-          userMap[member._id].stats.totalLogged += Number(
+          userMap[member.id].stats.totalLogged += Number(
             msToHours(task.timeManagement?.totalLoggedTime || 0),
           );
         }
@@ -159,8 +159,8 @@ export const AllTable = () => {
       {roles.map((role) => {
         const roleUsers = getRoleData(role);
         const isAuthorized =
-          user.role === "admin" ||
-          user.role === "super-admin" ||
+          user.role === "ceo" ||
+          user.role === "manager" ||
           user.role === role;
 
         if (isAuthorized && roleUsers.length > 0) {

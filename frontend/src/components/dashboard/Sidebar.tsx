@@ -4,21 +4,22 @@ import { useEffect, useState } from "react"
 import { deleteBoard, editBoard, fetchBoard } from "../redux/features/Board/boardSlice"
 import { slugify } from '../hooks/slugify'
 import {
-    House,
-    Kanban,
-    Users,
-    SignOut,
-    Plus,
-    CaretLeft,
-    CaretRight,
-    // UserCirclePlus,
-    ListChecks,
+    HouseIcon,
+    UsersIcon,
+    PlusIcon,
+    ListChecksIcon,
     DotsThreeVerticalIcon,
+    UserCirclePlusIcon,
+    CaretRightIcon,
+    CaretLeftIcon,
+    SignOutIcon,
+    KanbanIcon,
+    UserCircleIcon,
 } from "@phosphor-icons/react";
 import { logoutUser } from "../redux/features/User/login/loginSlice";
 import { CreateBoardForm } from "../redux/features/Board/CreateBoardForm"
 import AddUserModal from "../redux/features/User/AddUserModal"
-import { DeleteBoardModal } from "../modal/DeleteModal"
+import { DeleteModal } from "../modal/DeleteModal"
 interface SidebarProps {
     collapsed: boolean;
     setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
@@ -37,7 +38,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
         "flex items-center h-11 px-4 text-sm rounded-md transition-all";
     const active = "bg-black text-white";
     const inactive = "text-black hover:bg-black hover:text-white";
-
+    
     const dispatch = useAppDispatch();
     const user = useAppSelector(state => state.login.user)
     const board = useAppSelector(state => state.board.boards)
@@ -112,17 +113,24 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                             className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""
                                 }`}
                         >
-                            <House size={18} />
+                            <HouseIcon size={18} />
                             {!collapsed && "Home"}
                         </div>
                     </NavLink>
+                   
+<NavLink to={`/${role}/dashboard/profile`} className={({ isActive }) => `${baseRow} ${isActive ? active : inactive}`}>
+    <div className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""}`}>
+        <UserCircleIcon size={18} />
+        {!collapsed && "Profile"}
+    </div>
+</NavLink>
                     <NavLink to={`${dashboardBase}/tasks?scope=${(role === 'manager' || role === 'ceo') ? 'all' : 'mine'}`}
                         className={({ isActive }) => `${baseRow} ${isActive ? active : inactive} `}>
                         <div
                             className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""
                                 }`}
                         >
-                            <ListChecks size={18} />
+                            <ListChecksIcon size={18} />
                             {!collapsed &&
                                 (role === "manager" || role === "ceo"
                                     ? "All Tasks"
@@ -134,7 +142,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                             onClick={() => setShowBoard((p) => !p)}
                             className="flex items-center gap-3 flex-1 text-left"
                         >
-                            <Kanban size={18} />
+                            <KanbanIcon size={18} />
                             {!collapsed && "Project"}
                         </button>
                         {!collapsed && (
@@ -145,7 +153,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                                 }}
                                 className="p-1"
                             >
-                                <Plus size={14} />
+                                <PlusIcon size={14} />
                             </button>
                         )}
 
@@ -218,7 +226,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                             })}
                         </div>
                     )}
-                    {/* {role === "super-admin" && (
+                    {(role === "manager" || role === "ceo") && (
                         <button
                             onClick={() => setShowAddUser(true)}
                             className={`w-full ${baseRow} ${inactive}`}
@@ -227,11 +235,12 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                                 className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""
                                     }`}
                             >
-                                <UserCirclePlus size={18} />
+                                <UserCirclePlusIcon size={18} />
                                 {!collapsed && "Create User"}
                             </div>
                         </button>
-                    )} */}
+                    )}
+                     {(role === "manager" || role === "ceo") && (
                     <NavLink
                         to={`/${role}/dashboard/teams`}
                         className={({ isActive }) =>
@@ -242,15 +251,16 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                             className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""
                                 }`}
                         >
-                            <Users size={18} />
+                            <UsersIcon size={18} />
                             {!collapsed && "Teams"}
                         </div>
                     </NavLink>
+                     )}
                     <button
                         onClick={() => setCollapsed((p) => !p)}
                         className="flex items-center h-11 w-full justify-center"
                     >
-                        {collapsed ? <CaretRight /> : <CaretLeft />}
+                        {collapsed ? <CaretRightIcon /> : <CaretLeftIcon />}
                     </button>
                 </nav>
                 <div className="p-3">
@@ -258,7 +268,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                         onClick={handleLogout}
                         className="flex items-center gap-3 text-black hover:text-red-600 transition"
                     >
-                        <SignOut />
+                        <SignOutIcon />
                         {!collapsed && "Logout"}
                     </button>
                 </div>
@@ -282,8 +292,11 @@ export const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                 <AddUserModal onClose={() => setShowAddUser(false)} />
             )}
             {taskToDelete && (
-                <DeleteBoardModal
-                board={taskToDelete}
+                <DeleteModal
+                item={taskToDelete}
+                itemLabel="board"
+                getName={(board)=>board.name}
+                getId={(board)=>board.id}
                 onCancel={()=>setTaskToDelete(null)}
                 onConfirm={handleDelete}
                 />

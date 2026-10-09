@@ -6,13 +6,11 @@ import {
   markAsRead,
 } from "../redux/features/notifications/notificationSlice";
 import {
-  MagnifyingGlass,
   Bell,
-  Chats,
-  Gear,
 } from "@phosphor-icons/react";
 
 import { getAvatarColor } from "../utils/avatarColor"; // ✅ IMPORT FROM UTILS
+import { SearchBar } from "./SearchBar";
 
 export const Topbar = () => {
   const dispatch = useAppDispatch();
@@ -63,6 +61,12 @@ export const Topbar = () => {
   /* ============================= */
   useEffect(() => {
     dispatch(fetchNotifications());
+
+    const interval = setInterval(() => {
+      dispatch(fetchNotifications());
+    }, 30000); // refresh every 30s
+
+    return () => clearInterval(interval);
   }, [dispatch]);
 
   /* ============================= */
@@ -88,43 +92,18 @@ export const Topbar = () => {
       dispatch(markAsRead(id));
     }
   };
-
-  const role = user?.role;
-
-  const openChatInNewTab = () => {
-    if (!role) return;
-    const chatPath = `/${role}/dashboard/chats`;
-
-    window.open(
-      `${window.location.origin}${chatPath}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
-
   return (
     <header className="sticky top-0 z-40 h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-100">
-      
+
       {/* ================= SEARCH ================= */}
       <div className="flex items-center gap-3 w-[420px] max-w-full">
-        <MagnifyingGlass size={18} className="text-gray-500" />
-        <input
-          type="text"
-          placeholder="Search boards, tasks, docs..."
-          className="w-full bg-transparent text-sm text-gray-800 placeholder:text-gray-400 outline-none"
-        />
+       <SearchBar />
       </div>
 
       {/* ================= RIGHT SIDE ================= */}
       <div className="flex items-center gap-5">
 
-        {/* CHAT */}
-        <button
-          onClick={openChatInNewTab}
-          className="relative text-gray-500 hover:text-black transition"
-        >
-          <Chats size={20} />
-        </button>
+
 
         {/* ================= NOTIFICATIONS ================= */}
         <div className="relative" ref={dropdownRef}>
@@ -145,83 +124,77 @@ export const Topbar = () => {
             )}
           </button>
 
-{isOpen && (
-  <div className="absolute right-0 mt-4 w-[360px] bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.2)]  overflow-hidden">
+          {isOpen && (
+            <div className="absolute right-0 mt-4 w-[360px] bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.2)]  overflow-hidden">
 
-    {/* HEADER */}
-    <div className="px-5 py-4 flex justify-between items-center bg-[#000]">
-      <h3 className="font-semibold text-gray-50 text-sm">
-        Notifications
-      </h3>
+              {/* HEADER */}
+              <div className="px-5 py-4 flex justify-between items-center bg-[#000]">
+                <h3 className="font-semibold text-gray-50 text-sm">
+                  Notifications
+                </h3>
 
-      <button
-        className="text-xs font-semibold transition hover:opacity-80"
-        style={{ color: avatarBgColor }}
-        onClick={() => dispatch(markAllNotificationsAsRead())}
-      >
-        Mark all as read
-      </button>
-    </div>
+                <button
+                  className="text-xs font-semibold transition hover:opacity-80"
+                  style={{ color: avatarBgColor }}
+                  onClick={() => dispatch(markAllNotificationsAsRead())}
+                >
+                  Mark all as read
+                </button>
+              </div>
 
-    {/* LIST */}
-    <div
-      className="
+              {/* LIST */}
+              <div
+                className="
         max-h-[420px]
         overflow-y-auto
         overflow-x-hidden
         scrollbar-hide
       "
-    >
-      {notifications.length > 0 ? (
-  notifications.map((n) => (
-    <div
-      key={n.id}
-      onClick={() => handleNotificationClick(n.id, n.is_read)}
-      className={`px-5 py-4 cursor-pointer transition-all duration-200 flex gap-4 items-start
+              >
+                {notifications.length > 0 ? (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => handleNotificationClick(n.id, n.is_read)}
+                      className={`px-5 py-4 cursor-pointer transition-all duration-200 flex gap-4 items-start
         ${!n.is_read ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-50"}
       `}
-    >
-      {/* CONTENT */}
-      <div className="flex flex-col flex-1 pr-4">
-        <p className="text-sm font-semibold text-black leading-snug break-words">
-          {n.title}
-        </p>
+                    >
+                      {/* CONTENT */}
+                      <div className="flex flex-col flex-1 pr-4">
+                        <p className="text-sm font-semibold text-black leading-snug break-words">
+                          {n.title}
+                        </p>
 
-        <p className="text-xs text-gray-600 mt-1 break-words">
-          {n.message}
-        </p>
+                        <p className="text-xs text-gray-600 mt-1 break-words">
+                          {n.message}
+                        </p>
 
-        <p className="text-[11px] text-gray-400 mt-2">
-          {formatNotificationDate(n.created_at)}
-        </p>
-      </div>
+                        <p className="text-[11px] text-gray-400 mt-2">
+                          {formatNotificationDate(n.created_at)}
+                        </p>
+                      </div>
 
-      {/* UNREAD DOT */}
-      {!n.is_read && (
-        <div className="flex items-center pt-1">
-          <div
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: avatarBgColor }}
-          />
+                      {/* UNREAD DOT */}
+                      {!n.is_read && (
+                        <div className="flex items-center pt-1">
+                          <div
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: avatarBgColor }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center text-gray-400 text-sm">
+                    All caught up 🎉
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  ))
-) : (
-  <div className="py-12 text-center text-gray-400 text-sm">
-    All caught up 🎉
-  </div>
-)}
-    </div>
-  </div>
-)}
-        </div>
-
-        {/* SETTINGS */}
-        <button className="text-gray-500 hover:text-black transition">
-          <Gear size={20} />
-        </button>
-
         {/* ================= USER PROFILE ================= */}
         <div className="flex items-center gap-2 pl-3 border-l border-gray-200 cursor-pointer group">
           <div

@@ -13,8 +13,10 @@ const {
   getTasks,
   uploadtaskFile,
   deleteTaskFile,
+  toggleFavorite
 } = require('./task.controller');
 const { protect } = require('../../middleware/auth');
+
 
 const uploadPath = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
@@ -33,5 +35,6 @@ router.post('/:taskId/timer', protect, toggleTimer);
 router.post('/:taskId/upload', protect, upload.array('files'), uploadtaskFile);
 router.get('/', protect, getTasks);
 router.delete('/:taskId/upload/:fileId', protect, deleteTaskFile);
+router.post('/:taskId/favorite', protect, toggleFavorite);
 
 module.exports = router;

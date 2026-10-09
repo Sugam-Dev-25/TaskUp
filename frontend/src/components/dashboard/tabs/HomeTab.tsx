@@ -100,36 +100,31 @@ export const HomeTab = () => {
   const allTasks = useAppSelector((state) => state.task.task) || [];
   const columnsByBoard = useAppSelector((state) => state.column.columns);
 
-  useEffect(() => {
-    dispatch(getTasks());
-    boards.forEach((b) => {
-      if (b?._id) {
-        dispatch(fetchColumn(b._id));
-      }
-    });
-  }, [dispatch, boards.length]);
+useEffect(() => {
+  dispatch(getTasks());
+}, [dispatch]);
+
+useEffect(() => {
+  boards.forEach((board) => {
+    if (!board?.id) return;
+
+    // Don't fetch if columns are already loaded
+    if (!columnsByBoard[board.id]) {
+      dispatch(fetchColumn(board.id));
+    }
+  });
+}, [dispatch, boards, columnsByBoard]);
 
   const calculateStats = (boardId: string): Stats => {
-    const boardTasks = allTasks.filter((t) => {
-      if (!t || !t.board) return false;
-      const taskId = t.board._id ? String(t.board._id) : String(t.board);
-      return taskId === String(boardId);
-    });
+    const boardTasks = allTasks.filter((t) => t.board_id === boardId);
+  const boardColumns = columnsByBoard[boardId] || [];
 
-    const boardColumns = columnsByBoard[boardId] || [];
-
-    const getCountByStatus = (statusName: string) => {
-      return boardTasks.filter((t) => {
-        if (!t.column) return false;
-
-        const columnName = t.column.name
-          ? t.column.name
-          : boardColumns.find((c) => c?._id === t?.column)?.name;
-
-        return columnName === statusName;
-      }).length;
-    };
-
+  const getCountByStatus = (statusName: string) => {
+    return boardTasks.filter((t) => {
+      const columnName = boardColumns.find((c) => c.id === t.column_id)?.name;
+      return columnName === statusName;
+    }).length;
+  };
     const Todo = getCountByStatus("Todo");
     const InProgress = getCountByStatus("In Progress");
     const Completed = getCountByStatus("Completed");
@@ -166,11 +161,11 @@ export const HomeTab = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-10">
         {boards.map((board) => {
-          const stats = calculateStats(board._id);
+          const stats = calculateStats(board.id);
 
           return (
             <div
-              key={board._id}
+              key={board.id}
               className="bg-white rounded-[2rem] p-7 shadow-xl border-t-8 border-gray-900 flex flex-col"
             >
               <div className="flex justify-between items-start mb-6">

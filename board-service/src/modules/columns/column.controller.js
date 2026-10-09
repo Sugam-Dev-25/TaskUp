@@ -5,7 +5,7 @@ const createColumn = async (req, res) => {
   const boardId = req.params.boardId;
   const { name } = req.body;
   try {
-    const isMember = await boardRepo.isMember(boardId, req.user._id);
+    const isMember = await boardRepo.isMember(boardId, req.user.id);
     if (!(await boardRepo.findById(boardId))) {
       return res.status(404).json({ message: 'Board Not found' });
     }
@@ -26,7 +26,7 @@ const deleteColumn = async (req, res) => {
     const column = await columnRepo.findById(columnId);
     if (!column) return res.status(404).json({ message: 'Column is not found' });
 
-    const isMember = await boardRepo.isMember(column.board_id, req.user._id);
+    const isMember = await boardRepo.isMember(column.board_id, req.user.id);
     if (!isMember) return res.status(403).json({ message: 'Deleting Column has not access' });
 
     // FK ON DELETE CASCADE removes the column's tasks (and their

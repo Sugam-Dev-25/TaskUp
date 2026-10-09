@@ -1,7 +1,8 @@
 import { Paperclip, PaperPlaneRight, CaretDown, CaretUp, XCircle, File } from "@phosphor-icons/react";
-import { useContext, useState, useRef, useMemo, memo } from "react";
-import { BoardContext } from "../../context/BoardContext";
-import { useAppSelector } from "../../redux/app/hook";
+import {  useState, useRef, useMemo, memo } from "react";
+import { useAppDispatch, useAppSelector } from "../../redux/app/hook";
+import { addComment } from "../../redux/features/Task/taskSlice";
+
 
 interface ActivityDetailsProps {
     taskId: string | undefined; // Pass only the ID to prevent typing lag
@@ -25,13 +26,9 @@ export const ActivityDetails = memo(({ taskId }: ActivityDetailsProps) => {
     const [showAllComments, setShowAllComments] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const boardDetails = useContext(BoardContext);
-    
-    // 1. Get the "Real" task data from Context (which comes from Redux)
-    // This data does NOT change when you type in the Edit Title/Description inputs
-    const taskData = useMemo(() => {
-        return boardDetails?.task.find(t => t._id === taskId);
-    }, [boardDetails?.task, taskId]);
+   const dispatch = useAppDispatch();
+const tasks = useAppSelector((state) => state.task.task);
+const taskData = useMemo(() => tasks.find(t => t.id === taskId), [tasks, taskId]);
 
     const user = useAppSelector(state => state.login.user);
 
@@ -54,7 +51,7 @@ export const ActivityDetails = memo(({ taskId }: ActivityDetailsProps) => {
             formData.append("files", file);
         });
 
-        await boardDetails?.addComment?.(taskId, formData);
+       if (taskId) await dispatch(addComment({ taskId, formData }));
         
         setCommentText("");
         setSelectedFiles([]);
@@ -97,12 +94,12 @@ const comments = useMemo(() => {
                     </div>
                     <div className="overflow-y-auto space-y-4 pr-1">
                         {displayedActivities.map((item, i) => (
-                            <div key={item._id || i} className="flex flex-col gap-1">
+                            <div key={item.id || i} className="flex flex-col gap-1">
                                 <div className="flex items-start gap-2 text-xs text-gray-500">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-                                    <p><span className="font-bold text-gray-700">{item.user?._id === user?._id ? "You" : item.user?.name}</span> {item.action}</p>
+                                    <p><span className="font-bold text-gray-700">{item.user?.id === user?.id ? "You" : item.user?.full_name}</span> {item.action}</p>
                                 </div>
-                                <span className="text-[10px] text-gray-400 ml-3">{getRelativeTime(item.createdAt)}</span>
+                                <span className="text-[10px] text-gray-400 ml-3">{getRelativeTime(item.created_at)}</span>
                             </div>
                         ))}
                     </div>
@@ -122,9 +119,9 @@ const comments = useMemo(() => {
                     
                     <div className="overflow-y-auto space-y-4 pr-1">
                         {displayedComments.map((item, i) => (
-                            <div key={item._id || i} className="flex flex-col gap-1">
+                            <div key={item.id || i} className="flex flex-col gap-1">
                                 <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                                    <p className="text-xs font-bold text-gray-800 mb-1">{item.user?.name}</p>
+                                    <p className="text-xs font-bold text-gray-800 mb-1">{item.user?.full_name}</p>
                                     <p className="text-sm text-gray-600 leading-tight mb-2">{item.text}</p>
                                     
                                     {item.attachments && item.attachments.length > 0 && (
@@ -143,7 +140,7 @@ const comments = useMemo(() => {
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[10px] text-gray-400 ml-1">{getRelativeTime(item.createdAt)}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">{getRelativeTime(item.created_at)}</span>
                             </div>
                         ))}
                     </div>

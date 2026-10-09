@@ -43,6 +43,13 @@ async function verify(rawToken) {
 
   const user = await accountsRepository.getById(record.user_id);
   if (!user) throw new UserNotFoundError();
+  if(user.approved_by){
+    await notifyUser({
+      userId:user.approved_by,
+      title: 'new User Verified',
+      message: `${user.full_name} has verified their email and can now log in.`,
+    })
+  }
 
   await accountsRepository.markVerified(user.id);
   await repo.markUsed(record.id);
