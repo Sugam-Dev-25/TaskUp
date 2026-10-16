@@ -479,10 +479,7 @@ export const TaskDetails = ({ task, status, onClose, variant='modal' }: TaskDeta
                             )}
                         </section>
                         <section className="mt-8">
-                            <AttachmentSection
-                                taskId={task.id}
-                                attachments={editedTask.attachments || []}
-                            />
+                          <AttachmentSection taskId={task.id} attachments={task.attachments || []} />
                         </section>
                     </div>
                     <div className="bg-gray-50/30 h-full overflow-hidden">
