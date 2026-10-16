@@ -1,8 +1,9 @@
 import { createListenerMiddleware, isAnyOf } from "@reduxjs/toolkit";
 import { addMember, createBoard, deleteBoard, editBoard } from "../features/Board/boardSlice";
 import { fetchNotifications } from "../features/notifications/notificationSlice";
-import { addTask, deleteTask, getTasks, moveTask, updateTask, addComment } from "../features/Task/taskSlice";
+import { addTask, deleteTask, getTasks, moveTask, updateTask} from "../features/Task/taskSlice";
 import { addColumn, deleteColumn } from "../features/Column/columnSlice";
+import { addComment } from "../features/Comment/commentThunks";
 
 export const listenerMiddleware = createListenerMiddleware();
 

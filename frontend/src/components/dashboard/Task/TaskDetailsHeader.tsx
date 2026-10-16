@@ -5,7 +5,7 @@ import {
 import { useCurrentBoard } from '../../hooks/useCurrentBoard'
 import { useAppDispatch, useAppSelector } from '../../redux/app/hook'
 import { deleteTask as deleteTaskThunk } from '../../redux/features/Task/taskSlice'
-import { toggleFavorite as toggleFavoriteThunk } from '../../redux/features/Task/taskSlice'
+import { toggleFavorite as toggleFavoriteThunk } from '../../redux/features/Favorite/favoriteThunks'
 import type { Task } from '../../types/board.Types'
 import { DeleteModal } from '../../modal/DeleteModal'
 
