@@ -11,6 +11,7 @@ import {
 
 import { getAvatarColor } from "../utils/avatarColor"; // ✅ IMPORT FROM UTILS
 import { SearchBar } from "./SearchBar";
+import { ActiveTimerChip } from "./ActiveTimerChip";
 
 export const Topbar = () => {
   const dispatch = useAppDispatch();
@@ -99,7 +100,7 @@ export const Topbar = () => {
       <div className="flex items-center gap-3 w-[420px] max-w-full">
        <SearchBar />
       </div>
-
+      <ActiveTimerChip/>
       {/* ================= RIGHT SIDE ================= */}
       <div className="flex items-center gap-5">
 

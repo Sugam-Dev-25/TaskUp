@@ -64,7 +64,8 @@ const wrap = (heading, content, primaryLink = null, buttonText = 'View Details')
     </body>
   </html>
 `;
-
+const esc = (s = '') =>
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 module.exports = {
   addedToBoard: ({ boardName, addedBy, boardLink }) => ({
     subject: `You were added to "${boardName}"`,
@@ -126,5 +127,16 @@ module.exports = {
       'View Task'
     ),
   }),
+  mentioned: ({ taskTitle, boardName, mentionedBy, comment, taskLink }) => ({
+  subject: `${mentionedBy} mentioned you on: ${taskTitle}`,
+  html: wrap(
+    'You were mentioned',
+    `<p style="margin:0 0 20px 0;">Hi there,</p>
+     <p style="margin:0 0 20px 0;"><b>${esc(mentionedBy)}</b> mentioned you on <b>${esc(taskTitle)}</b> in <b>${esc(boardName || 'your project')}</b>.</p>
+     <div style="background:#f3f4f6;border-left:4px solid #2563eb;padding:15px 18px;margin:20px 0 25px 0;border-radius:4px;color:#374151;">${esc(comment)}</div>`,
+    taskLink,
+    'Open Task'
+  ),
+}),
 
 };
