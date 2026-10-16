@@ -7,7 +7,6 @@ const path = require('path');
 
 const config = require('./config/config');
 const boardRoutes = require('./modules/boards/board.routes');
-const taskRoutes = require('./modules/tasks/task.routes');
 
 const app = express();
 
@@ -23,9 +22,11 @@ app.use(
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/boards', boardRoutes);
-// createColumn/getColumns/deleteColumn need :boardId, so this router only
-// makes sense nested under /api/boards/:boardId/columns (see board.routes.js).
-app.use('/api/tasks', taskRoutes);
+app.use('/api/tasks', require('./modules/tasks/task.routes'));
+app.use('/api/tasks', require('./modules/comments/comment.routes'));
+app.use('/api/tasks', require('./modules/attachments/attachment.routes'));
+app.use('/api/tasks', require('./modules/timers/timer.routes'));
+app.use('/api/tasks', require('./modules/favorites/favorite.routes'));
 
 app.get('/health', (req, res) => {
   res.status(200).json({ success: true, message: 'Board service is running' });

@@ -7,9 +7,7 @@ import { refreshAccessToken } from './authRefresh';
 const boardApiClient = axios.create({
   baseURL: import.meta.env.VITE_BOARD_API_URL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  
 });
 
 // board-service verifies the same access token user-service issues (same
