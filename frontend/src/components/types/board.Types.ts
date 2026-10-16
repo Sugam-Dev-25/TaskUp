@@ -11,7 +11,7 @@ export type Column = {
 export type Board = {
   id: string;
   name: string;
-  description:string | null;
+  description: string | null;
   owner: User;
   members: User[];
   columns?: Column[];  // only present on GET /api/boards/:id, not the list endpoint
@@ -34,13 +34,21 @@ export type TimeManagement = {
   activeTimers: { user: User; active_start_time: string }[];
 };
 
+export type CommentBlock =
+  | { type: "text"; text: string }
+  | { type: "file"; attachment_id: string };
+
 export type Comment = {
   id: string;
   task_id: string;
   user: User | null;
   text: string | null;
+  blocks: CommentBlock[] | null;
   attachments: Attachment[];
   created_at: string;
+  edited_at: string | null;
+  can_edit: boolean;
+  can_delete: boolean;
 };
 
 export type Activity = {
@@ -60,9 +68,13 @@ export type Attachment = {
   id: string;
   fileName: string;
   fileUrl: string;
-  fileType?: string | null;
+  downloadUrl: string;
+  previewUrl: string | null;
+  fileType: string | null;
+  size: number | null;
+  isImage: boolean;
   uploadedBy: User | null;
-  createdAt?: string;
+  createdAt?: string | null;
 };
 
 export type Task = {
@@ -77,7 +89,7 @@ export type Task = {
 
   due_date: string | Date;
   start_date: string | Date;
-is_favorited: boolean;
+  is_favorited: boolean;
   column_id: string;
   board_id: string;
 
