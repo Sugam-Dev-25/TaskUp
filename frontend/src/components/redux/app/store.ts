@@ -7,6 +7,7 @@ import taskSlice from '../features/Task/taskSlice'
 import notificationSlice from '../features/notifications/notificationSlice';
 import uiReducer from '../features/ui/loadingSlice';
 import userReducer from '../features/User/userSlice';
+import timerReducer from '../features/Timer/timerSlice'
 import { listenerMiddleware } from './listenerMiddleware';
 export const store = configureStore({
     reducer: {
@@ -17,7 +18,7 @@ export const store = configureStore({
         column: cloumnSlice,
         task: taskSlice,
         notification: notificationSlice,
-        
+        timer: timerReducer,
         user: userReducer,
       
     },
